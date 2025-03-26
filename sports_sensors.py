@@ -1,7 +1,7 @@
 import random
 import time
 import json
-from azure.iot.device import IoTHubDeviceClient, Message
+from azure.iot.device import IoTHubDeviceClient, Message, MethodResponse
 
 # ✅ Azure IoT Hub Connection String
 CONNECTION_STRING = "HostName=PERSONAL-TRAINER-APP.azure-devices.net;DeviceId=sports-sensor-01;SharedAccessKey=zBixGT/LFVKqWJBfor1xYsV9kFIdACReJpSOyCnhqoI="
@@ -11,8 +11,8 @@ client = IoTHubDeviceClient.create_from_connection_string(CONNECTION_STRING)
 
 # ✅ Function to simulate sensor data
 def generate_sensor_data():
-    heart_rate = random.randint(60, 180)  # Random heart rate (BPM)
-    motion = random.uniform(0.1, 5.0)  # Random motion intensity (G-forces)
+    heart_rate = random.randint(60, 180)  # Heart rate (BPM)
+    motion = random.uniform(0.1, 5.0)  # Motion intensity (G-forces)
     temperature = random.uniform(36.0, 39.0)  # Body temperature (°C)
     
     data = {
@@ -45,6 +45,33 @@ def send_data():
     finally:
         client.shutdown()
 
-# ✅ Run the sensor simulation
+# ✅ Function to receive data from Azure IoT Hub
+def receive_data():
+    print("📥 Waiting to receive data from Azure IoT Hub...\n")
+
+    def message_handler(message):
+        print(f"📩 Received message from IoT Hub: {message.data.decode('utf-8')}")
+
+    client.on_message_received = message_handler
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n❌ Stopping sensor receiver...")
+    finally:
+        client.shutdown()
+
+# ✅ Run the sensor simulation & receiver
 if __name__ == "__main__":
-    send_data()
+    import threading
+
+    sender_thread = threading.Thread(target=send_data)
+    receiver_thread = threading.Thread(target=receive_data)
+
+    sender_thread.start()
+    receiver_thread.start()
+
+    sender_thread.join()
+    receiver_thread.join()
+s
